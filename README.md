@@ -1,2 +1,2 @@
 # distributed-home-value-forecaster
-Distributed U.S. home value forecaster, parallet,lized across a simulated worker flee with AI-generated market insights
+U.S. Regional Home Value Forecaster, distributed and parallelized across a simulated worker fleet, with AI-powered market insights
