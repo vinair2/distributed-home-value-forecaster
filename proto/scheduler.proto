@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package scheduler;
+
+option go_package = "distributed-home-value-forecaster/proto";
+
+
+// =========================================================================================================
+// Coordinator Service
+// - Client-Facing API, Clients submit tasks and request a task's heartbeat (status)
+// =========================================================================================================
+service CoordinatorService {
+    rpc SubmitTask(SubmitTaskRequest) returns (TaskAcknowledgement) {};
+    rpc GetTaskStatus(GetTaskStatusRequest) returns (TaskStatus) {};
+}
+
+// =========================================================================================================
+// Worker Service
+// - Backend (Worker) Facing API, Workers communicate bidirectionally with the Coordinator Service
+// =========================================================================================================
+service WorkerService {
+    rpc ConnectToCoordinator(stream WorkerMessage) returns (stream CoordinatorMessage) {};
+}
+
+// =========================================================================================================
+// Message Payload Definitions (Workers <-> Coordinator)
+// =========================================================================================================
+
+// Worker -> Coordinator
+message WorkerMessage {
+    oneof payload {
+        WorkerRegistration registration = 1;
+        WorkerHeartbeat heartbeat = 2;
+        TaskAcknowledgement task_ack = 3;
+        TaskStatus task_status = 4;
+    }
+}
+
+// Coordinator -> Worker
+message CoordinatorMessage {
+    oneof payload {
+        WorkerAcknowledgement worker_ack = 1;
+        TaskStatus task_status = 2;
+        TaskAssignment task_assignment = 3;
+    }
+}
+
+// =========================================================================================================
+// Message Definitions
+// =========================================================================================================
+
+// WorkerMessage.registration
+message WorkerRegistration {
+    string worker_id = 1;
+    int32 max_concurrent_tasks = 2;
+}
+
+// WorkerMessage.heartbeat
+message WorkerHeartbeat {
+    string worker_id = 1;
+    double cpu_usage = 2;
+    double mem_usage = 3;
+    int32 active_tasks = 4;
+    int64 timestamp = 5;
+}
+
+// WorkerMessage.task_ack (also CoordinatorService.SubmitTask response)
+message TaskAcknowledgement {
+    string task_id = 1;
+    bool accepted = 2;
+}
+
+// WorkerMessage.task_status (also CoordinatorService.GetTaskStatus response)
+message TaskStatus {
+    string task_id = 1;
+    string worker_id = 2;
+    string status = 3;
+    string result_data = 4;
+    string error_message = 5;
+    int64 started_timestamp = 6;
+    int64 completed_timestamp = 7;
+}
+
+// CoordinatorMessage.worker_ack
+message WorkerAcknowledgement {
+    string worker_id = 1;
+    bool registered = 2;
+}
+
+// CoordinatorMessage.task_assignment
+message TaskAssignment {
+    string task_id = 1;
+    string task_type = 2;
+    string task_data = 3;
+}
+
+// Client-facing submit task request
+message SubmitTaskRequest {
+    string request_payload = 1;
+}
+// Client-facing get task status request
+message GetTaskStatusRequest {
+    string task_id = 1;
+}
